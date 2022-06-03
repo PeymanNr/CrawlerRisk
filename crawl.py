@@ -69,7 +69,7 @@ class DataCrawler(CrawlerBase):
 
     def __init__(self):
         self.link = self.__load_links()
-        # self.parser = AdvertisementPageParser
+        self.parser = AdvertisementPageParser()
 
     @staticmethod
     def __load_links():
@@ -77,23 +77,11 @@ class DataCrawler(CrawlerBase):
             link = json.loads(f.read())
             return link
 
-    def parse_links(self, html_data):
-        soup = BeautifulSoup(html_data, 'html.parser')
-        data = dict(title=None, price=None)
-        title_tag = soup.find('h1',
-                              attrs={'class': 'product_title entry-title'})
-        if title_tag:
-            data['title'] = title_tag.text
-        price_tag = soup.find('span', attrs={'class':'woocommerce-Price-amount amount'})
-        if price_tag:
-            data['price'] = price_tag.text
-
-        return data
 
     def start(self):
         for links in self.link:
             response = requests.get(links)
-            data = self.parse_links(response.text)
+            data = self.parser.parse_links(response.text)
             print(data)
 
     def store(self, data):

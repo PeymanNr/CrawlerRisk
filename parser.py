@@ -3,9 +3,9 @@ from bs4 import BeautifulSoup
 
 class AdvertisementPageParser:
 
-    def parse_links(self):
+    def parse_links(self, response_text):
 
-        soup = BeautifulSoup('html.parser')
+        soup = BeautifulSoup(response_text ,'html.parser')
         # data = dict(title=None)
         title_tag = soup.find('h1', attrs={'class': 'product_title entry-title'})
         # data_links = title_tag.text

@@ -8,11 +8,11 @@ from parser import AdvertisementPageParser
 
 class CrawlerBase(ABC):
     @abstractmethod
-    def start(self):
+    def start(self, store):
         pass
 
     @abstractmethod
-    def store(self, data):
+    def store(self, data, filename=None):
         pass
 
     def get(self, link):
@@ -36,7 +36,7 @@ class LinkCrawler(CrawlerBase):
                                      'class': 'woocommerce-LoopProduct-link woocommerce-loop-product__link'})
         return adv_list
 
-    def start(self, url):
+    def start(self, url, store=False):
         start = 1
         crawl = True
         ad_link = list()
@@ -51,7 +51,7 @@ class LinkCrawler(CrawlerBase):
 
         return ad_link
 
-    def start_zommit(self):
+    def start_zommit(self, store=False):
         result_list = list()
         links = self.start(self.link)
         for li in links:
@@ -77,14 +77,14 @@ class DataCrawler(CrawlerBase):
             link = json.loads(f.read())
             return link
 
-
-    def start(self):
+    def start(self, store=False):
         for links in self.link:
             response = requests.get(links)
             data = self.parser.parse_links(response.text)
-            print(data)
+            if store:
+                self.store(data, data.get('title', 'sample'))
 
-    def store(self, data):
-        with open('storelist/data.json', 'w') as f:
+    def store(self, data, filename):
+        with open(f'storelist/adv/{filename}.json', 'w') as f:
             f.write(json.dumps(data))
-
+        print(f'storelist/adv/{filename}.json')

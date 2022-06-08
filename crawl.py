@@ -1,3 +1,4 @@
+import datetime
 import json
 from abc import ABC, abstractmethod
 from bs4 import BeautifulSoup
@@ -82,9 +83,9 @@ class DataCrawler(CrawlerBase):
             response = requests.get(links)
             data = self.parser.parse_links(response.text)
             if store:
-                self.store(data, data.get('title', 'sample'))
+                self.store(data)
 
-    def store(self, data, filename):
-        with open(f'storelist/adv/{filename}.json', 'w') as f:
+    def store(self, data):
+        with open(f'storelist/adv/{datetime.datetime.now()}.json', 'w') as f:
             f.write(json.dumps(data))
-        print(f'storelist/adv/{filename}.json')
+        print(f'storelist/adv/{datetime.datetime.now()}.json')

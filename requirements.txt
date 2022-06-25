@@ -8,3 +8,6 @@ requests==2.27.1
 self==2020.12.3
 soupsieve==2.3.2.post1
 urllib3==1.26.9
+
+selenium~=4.2.0
+pymongo~=4.1.1

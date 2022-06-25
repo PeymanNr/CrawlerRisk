@@ -1,13 +1,26 @@
-import datetime
-import json
 from abc import ABC, abstractmethod
 from bs4 import BeautifulSoup
 import requests
-from config import LINKBASE
+
+import login
+from config import LINKBASE, STORAGE_TYPE
 from parser import AdvertisementPageParser
+from storage import MongoStorage, FileStorage
+from login import get_cookie
 
 
 class CrawlerBase(ABC):
+
+    def __init__(self):
+        self.storage = self.__set_storage()
+        self.cookie = get_cookie()
+
+    @staticmethod
+    def __set_storage():
+        if STORAGE_TYPE == 'file':
+            return FileStorage()
+        return MongoStorage()
+
     @abstractmethod
     def start(self, store):
         pass
@@ -18,10 +31,9 @@ class CrawlerBase(ABC):
 
     def get(self, link):
         try:
-            response = requests.get(link)
+            response = requests.get(link, cookies=self.cookie)
         except:
             return None
-        # print(response.status_code, response.url)
         return response
 
 
@@ -29,6 +41,7 @@ class LinkCrawler(CrawlerBase):
 
     def __init__(self, link=LINKBASE):
         self.link = link
+        super().__init__()
 
     def find_links(self, html_doc):
         soup = BeautifulSoup(html_doc, 'html.parser')
@@ -48,44 +61,54 @@ class LinkCrawler(CrawlerBase):
             if start == 3:
                 crawl = False
             start += 1
-            # print(f'page:', len(ad_link))
 
         return ad_link
 
     def start_zommit(self, store=False):
-        result_list = list()
+        adv_links = list()
         links = self.start(self.link)
-        for li in links:
-            result_li = li.get('href')
-            print(result_li)
-            result_list.append(result_li)
-        self.store(result_list)
+        adv_links.extend(links)
+        if store:
+            self.store([{"url": li.get('href'), 'flag': False} for li in adv_links])
 
-    def store(self, data):
-        with open('storelist/data.json', 'w') as f:
-            f.write(json.dumps(data))
+    def store(self, data, *args):
+        self.storage.store(data, 'advertisements_links')
 
 
 class DataCrawler(CrawlerBase):
-
     def __init__(self):
-        self.link = self.__load_links()
+        super().__init__()
+        self.links = self.__load_links()
         self.parser = AdvertisementPageParser()
 
-    @staticmethod
-    def __load_links():
-        with open('storelist/data.json', 'r') as f:
-            link = json.loads(f.read())
-            return link
-
+    def __load_links(self):
+        return self.storage.load()
+    ###('advertisements_links', {'flag': False}
     def start(self, store=False):
-        for links in self.link:
-            response = requests.get(links)
+        for li in self.links:
+            response = requests.get(li['url'])
             data = self.parser.parse_links(response.text)
             if store:
-                self.store(data)
+                self.store(data, data.get('product_id', 'sample'))
+            # self.storage.update_flag(li)
 
-    def store(self, data):
-        with open(f'storelist/adv/{datetime.datetime.now()}.json', 'w') as f:
-            f.write(json.dumps(data))
-        print(f'storelist/adv/{datetime.datetime.now()}.json')
+    def store(self, data, filename):
+        self.storage.store(data, 'advertisement_data')
+        print(data['product_id'])
+
+
+class ImageDownloader(CrawlerBase):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self.advertisement = self.__load_advertisements()
+
+    def __load_advertisements(self):
+        return self.storage.load('advertisement_data')
+
+    def start(self, store=False):
+        for advertisement in self.advertisement:
+            for image in advertisement['image']:
+                pass
+
+    def store(self, data, filename):
+        pass
